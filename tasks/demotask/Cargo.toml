@@ -1,11 +1,12 @@
 [package]
-name = "alice"
+name = "demotask"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.68"
-clap = { version = "4.1.4", features = ["derive"] }
-wasmtime = { version = "5.0.0", features = ["component-model"] } 
+wit-bindgen-guest-rust = { path = "../../wit-bindgen/crates/guest-rust" }
+
+[lib]
+crate-type = ["cdylib"]

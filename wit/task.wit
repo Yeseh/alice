@@ -1,7 +1,13 @@
-default world task {
-  export task: interface {
-    init: func() -> i32,
-    run: func() -> i32,
-    dispose: func() -> i32,
+interface host-funcs {
+  test: func() 
+}
+
+world task {
+  import host: host-funcs 
+
+  default export interface {
+    init: func() -> s32
+    run: func() -> s32
+    dispose: func() -> s32
   }
 }

@@ -4,7 +4,108 @@ use std::prelude::rust_2021::*;
 #[macro_use]
 extern crate std;
 use clap::{Parser, Subcommand};
-use wasmtime::{Engine, Instance, Linker, Module, Store};
+use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
+#[allow(clippy::all)]
+pub mod host {
+    #[allow(unused_imports)]
+    use wasmtime::component::__internal::anyhow;
+    pub trait Host: Sized {
+        fn test(&mut self) -> anyhow::Result<()>;
+    }
+    pub fn add_to_linker<T, U>(
+        linker: &mut wasmtime::component::Linker<T>,
+        get: impl Fn(&mut T) -> &mut U + Send + Sync + Copy + 'static,
+    ) -> anyhow::Result<()>
+    where
+        U: Host,
+    {
+        let mut inst = linker.instance("host")?;
+        inst.func_wrap(
+            "test",
+            move |mut caller: wasmtime::StoreContextMut<'_, T>, (): ()| {
+                let host = get(caller.data_mut());
+                let r = host.test();
+                r
+            },
+        )?;
+        Ok(())
+    }
+}
+pub struct Task {
+    dispose: wasmtime::component::Func,
+    init: wasmtime::component::Func,
+    run: wasmtime::component::Func,
+}
+const _: () = {
+    use wasmtime::component::__internal::anyhow;
+    impl Task {
+        /// Instantiates the provided `module` using the specified
+        /// parameters, wrapping up the result in a structure that
+        /// translates between wasm and the host.
+        pub fn instantiate<T>(
+            mut store: impl wasmtime::AsContextMut<Data = T>,
+            component: &wasmtime::component::Component,
+            linker: &wasmtime::component::Linker<T>,
+        ) -> anyhow::Result<(Self, wasmtime::component::Instance)> {
+            let instance = linker.instantiate(&mut store, component)?;
+            Ok((Self::new(store, &instance)?, instance))
+        }
+        /// Low-level creation wrapper for wrapping up the exports
+        /// of the `instance` provided in this structure of wasm
+        /// exports.
+        ///
+        /// This function will extract exports from the `instance`
+        /// defined within `store` and wrap them all up in the
+        /// returned structure which can be used to interact with
+        /// the wasm module.
+        pub fn new(
+            mut store: impl wasmtime::AsContextMut,
+            instance: &wasmtime::component::Instance,
+        ) -> anyhow::Result<Self> {
+            let mut store = store.as_context_mut();
+            let mut exports = instance.exports(&mut store);
+            let mut __exports = exports.root();
+            let dispose = *__exports.typed_func::<(), (i32,)>("dispose")?.func();
+            let init = *__exports.typed_func::<(), (i32,)>("init")?.func();
+            let run = *__exports.typed_func::<(), (i32,)>("run")?.func();
+            Ok(Task { dispose, init, run })
+        }
+        pub fn init<S: wasmtime::AsContextMut>(
+            &self,
+            mut store: S,
+        ) -> anyhow::Result<i32> {
+            let callee = unsafe {
+                wasmtime::component::TypedFunc::<(), (i32,)>::new_unchecked(self.init)
+            };
+            let (ret0,) = callee.call(store.as_context_mut(), ())?;
+            callee.post_return(store.as_context_mut())?;
+            Ok(ret0)
+        }
+        pub fn run<S: wasmtime::AsContextMut>(
+            &self,
+            mut store: S,
+        ) -> anyhow::Result<i32> {
+            let callee = unsafe {
+                wasmtime::component::TypedFunc::<(), (i32,)>::new_unchecked(self.run)
+            };
+            let (ret0,) = callee.call(store.as_context_mut(), ())?;
+            callee.post_return(store.as_context_mut())?;
+            Ok(ret0)
+        }
+        pub fn dispose<S: wasmtime::AsContextMut>(
+            &self,
+            mut store: S,
+        ) -> anyhow::Result<i32> {
+            let callee = unsafe {
+                wasmtime::component::TypedFunc::<(), (i32,)>::new_unchecked(self.dispose)
+            };
+            let (ret0,) = callee.call(store.as_context_mut(), ())?;
+            callee.post_return(store.as_context_mut())?;
+            Ok(ret0)
+        }
+    }
+};
+const _: &str = "interface host-funcs {\n  test: func() \n}\n\nworld task {\n  import host: host-funcs \n\n  default export interface {\n    init: func() -> s32\n    run: func() -> s32\n    dispose: func() -> s32\n  }\n}\n";
 #[command(
     author = "Jesse Wellenberg",
     version = "0.0.1",
@@ -164,6 +265,7 @@ impl clap::Args for Cli {
         }
     }
 }
+struct HostState;
 enum Commands {
     Add { name: Option<String> },
     Run { id: i32 },
@@ -463,6 +565,18 @@ impl clap::Subcommand for Commands {
 }
 fn main() {
     let cli = Cli::parse();
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    let engine = Engine::new(&config).unwrap();
+    let mut linker: Linker<HostState> = Linker::new(&engine);
+    host::add_to_linker(
+        &mut linker,
+        |&mut ctx| {
+            ::std::io::_print(
+                ::core::fmt::Arguments::new_v1(&["Hello from host\n"], &[]),
+            );
+        },
+    );
     match &cli.command {
         Commands::Add { name } => {
             ::std::io::_print(
