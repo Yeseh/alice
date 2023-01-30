@@ -1,4 +1,8 @@
 use clap::{Parser, Subcommand};
+use wasmtime::{Engine, Instance, Linker, Module, Store};
+
+wasmtime::component::bindgen!("wit/demo.wit");
+// wasmtime::component::bindgen!("wit/task.wit");
 
 #[derive(Parser)]
 #[command(author = "Jesse Wellenberg", version = "0.0.1", about = "CLI app for Alice", long_about = None)]

@@ -1,0 +1,7 @@
+default world task {
+  export task: interface {
+    init: func() -> i32,
+    run: func() -> i32,
+    dispose: func() -> i32,
+  }
+}

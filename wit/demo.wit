@@ -1,0 +1,17 @@
+interface host-funcs {
+  current-user: func() -> string
+}
+
+default world demo {
+  import host: self.host-funcs
+
+  export people: interface {
+    record person {
+      name: string,
+      age: u32,
+    }
+
+    // Say hello to either the specified person or the current user
+    hello: func(who: option<person>) -> string
+  }
+}

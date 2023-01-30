@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
-wasmtime = "5.0.0"
+wasmtime = { version = "5.0.0", features = ["component-model"] } 
