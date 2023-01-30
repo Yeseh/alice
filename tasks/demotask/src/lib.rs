@@ -1,23 +1,24 @@
-wit_bindgen_guest_rust::generate!("task");
+mod task;
+
+use crate::task::*;
+
+// wit_bindgen_guest_rust::generate!("task");
 // use wasm_bindgen::*;
 
-use host::*;
+export_task!(dyn Task);
 
 pub struct TaskImpl;
 
-impl Task for TaskImpl {
-    #[no_mangle]
+impl task::Task for TaskImpl {
     fn init() -> i32 {
         1
     }
 
-    #[no_mangle]
     fn run() -> i32 {
-        host::test();
+        task::host::test();
         1
     }
 
-    #[no_mangle]
     fn dispose() -> i32 {
         1
     }
