@@ -1,25 +1,23 @@
-mod task;
+wit_bindgen_guest_rust::generate!({
+    world: "task",
+    path: "../../wit/task.wit"
+});
 
-use crate::task::*;
+pub struct Task;
 
-// wit_bindgen_guest_rust::generate!("task");
-// use wasm_bindgen::*;
-
-export_task!(dyn Task);
-
-pub struct TaskImpl;
-
-impl task::Task for TaskImpl {
+impl task::Task for Task {
     fn init() -> i32 {
         1
     }
-
+    
     fn run() -> i32 {
-        task::host::test();
+        host::test();
         1
     }
-
+    
     fn dispose() -> i32 {
         1
     }
 }
+
+export_task_world!(Task);

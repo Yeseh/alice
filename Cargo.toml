@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.68"
 clap = { version = "4.1.4", features = ["derive"] }
-wasmtime = { version = "5.0.0", features = ["component-model"] } 
+wasmtime = { git = "https://github.com/bytecodealliance/wasmtime", branch = "main", features = ["component-model"] } 
+wasmtime-wasi = { git = "https://github.com/bytecodealliance/wasmtime", branch = "main"} 

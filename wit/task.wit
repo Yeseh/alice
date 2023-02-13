@@ -2,12 +2,12 @@ interface host-funcs {
   test: func() 
 }
 
-world task {
-  import host: host-funcs 
-
-  default export interface {
+default world task-world {
+  export task: interface {
+    dispose: func() -> s32
     init: func() -> s32
     run: func() -> s32
-    dispose: func() -> s32
   }
+
+  import host: self.host-funcs 
 }

@@ -2,8 +2,7 @@ use clap::{Parser, Subcommand};
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
 
-// wasmtime::component?.unw:bindgen!("wit/task.wit");
-bindgen!("wit/task.wit");
+bindgen!("task");
 
 use host::*;
 
@@ -32,22 +31,26 @@ impl Host for HostState {
 }
 
 fn main() -> anyhow::Result<()> {
-    // let cli = Cli::parse();
     let mut config = Config::new();
     config.wasm_component_model(true);
-
+    
     let engine = Engine::new(&config)?;
     let mut linker: Linker<HostState> = Linker::new(&engine);
-
+    
     host::add_to_linker(&mut linker, |ctx| ctx)?;
-    let component = Component::from_file(&engine, "./tasks/compiled/demotask.wasm")?;
+
+    let component = Component::from_file(&engine, "./tasks/compiled/demotask/demotask.component.wasm")?;
     let mut store = Store::new(&engine, HostState {});
     println!("hallo");
-    let task = Task::instantiate(&mut store, &component, &linker)?;
 
-    let result = task.0.run(&mut store)?;
-
-    println!("The result was {}", result);
+    let t = TaskWorld::instantiate(&mut store, &component, &linker)?.0;
+    let init= t.task.call_init(&mut store)?;
+    let run= t.task.call_init(&mut store)?;
+    let dispose= t.task.call_init(&mut store)?;
+    
+    println!("Result of init was {}", init);
+    println!("Result of run was {}", run);
+    println!("Result of dispose was {}", dispose);
 
     Ok(())
 
