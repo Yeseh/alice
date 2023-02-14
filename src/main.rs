@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use wasmtime::component::{bindgen, Component, Linker};
 use wasmtime::{Config, Engine, Store};
+use wasmtime_wasi::{WasiCtx, define_wasi, WasiCtxBuilder};
 
 bindgen!("task");
 
@@ -23,7 +24,7 @@ enum Commands {
     Run { id: i32 },
 }
 
-impl Host for HostState {
+impl Host for WasiCtx {
     fn test(&mut self) -> anyhow::Result<()> {
         println!("Howdyhay");
         Ok(())
@@ -35,13 +36,20 @@ fn main() -> anyhow::Result<()> {
     config.wasm_component_model(true);
     
     let engine = Engine::new(&config)?;
-    let mut linker: Linker<HostState> = Linker::new(&engine);
-    
-    host::add_to_linker(&mut linker, |ctx| ctx)?;
+
+    let mut component_linker: Linker<WasiCtx> = Linker::new(&engine);
+    let mut linker: wasmtime::Linker<WasiCtx> = wasmtime::Linker::new(&engine);
+
+    let ctx = WasiCtxBuilder::new()
+        .inherit_stdout()
+        .inherit_stderr()
+        .build();
+
+    host::add_to_linker(&mut component_linker, |ctx| ctx)?;
+    // add_to_linker(&mut linker, |ctx| ctx);
 
     let component = Component::from_file(&engine, "./tasks/compiled/demotask/demotask.component.wasm")?;
-    let mut store = Store::new(&engine, HostState {});
-    println!("hallo");
+    let mut store = Store::new(&engine, ctx);
 
     let t = TaskWorld::instantiate(&mut store, &component, &linker)?.0;
     let init= t.task.call_init(&mut store)?;
